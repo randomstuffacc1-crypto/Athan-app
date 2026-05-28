@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="NoorTime is a polished Athan web app with prayer times, qibla direction, location settings, notifications, and backup support." />
+  <title>NoorTime | Athan & Qibla</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero glass-card">
+      <div class="hero-content">
+        <div class="brand-row">
+          <div class="brand-mark">☾</div>
+          <div>
+            <p class="eyebrow">Islamic prayer companion</p>
+            <h1>NoorTime</h1>
+          </div>
+        </div>
+        <p class="hero-copy">Daily prayer times, qibla direction, custom calculation settings, and gentle reminders in a clean mobile-first app.</p>
+        <div class="hero-actions">
+          <button id="useLocationBtn" class="primary-btn">Use Current Location</button>
+          <button id="enableNotificationsBtn" class="ghost-btn">Enable Alerts</button>
+        </div>
+      </div>
+      <aside class="next-prayer-card">
+        <span class="small-label">Next prayer</span>
+        <h2 id="nextPrayerName">Set location</h2>
+        <p id="nextPrayerTime">--:--</p>
+        <div id="countdown" class="countdown">--:--:--</div>
+      </aside>
+    </header>
+
+    <section class="ad-card top-ad" aria-label="Advertisement placeholder">
+      <span>Sponsored</span>
+      <strong>Ad space</strong>
+      <small>Replace with AdSense code later. No popups. No autoplay.</small>
+    </section>
+
+    <main class="dashboard-grid">
+      <section class="glass-card status-card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Today</p>
+            <h2>Prayer Dashboard</h2>
+          </div>
+          <input type="date" id="datePicker" aria-label="Select date" />
+        </div>
+        <div class="meta-grid">
+          <div>
+            <span>Local time</span>
+            <strong id="localTime">--:--</strong>
+          </div>
+          <div>
+            <span>Date</span>
+            <strong id="todayDate">--</strong>
+          </div>
+          <div>
+            <span>Location</span>
+            <strong id="locationName">No location saved</strong>
+          </div>
+        </div>
+        <div id="prayerList" class="prayer-list"></div>
+        <p class="disclaimer">Prayer times are estimates. Confirm with your local masjid, especially for Ramadan, high-latitude locations, and local timetable conventions.</p>
+      </section>
+
+      <section class="glass-card qibla-card">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">Qibla</p>
+            <h2>Direction</h2>
+          </div>
+          <button id="enableCompassBtn" class="small-btn">Live Compass</button>
+        </div>
+        <div class="compass-wrap">
+          <div class="compass" id="compassDial">
+            <div class="compass-ring"></div>
+            <div class="north-label">N</div>
+            <div class="east-label">E</div>
+            <div class="south-label">S</div>
+            <div class="west-label">W</div>
+            <div class="qibla-arrow" id="qiblaArrow">▲</div>
+            <div class="compass-center">⌖</div>
+          </div>
+        </div>
+        <div class="qibla-info">
+          <strong id="qiblaDegrees">--°</strong>
+          <span id="qiblaStatus">Save a location to calculate qibla.</span>
+        </div>
+      </section>
+
+      <section class="glass-card location-card">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">Location</p>
+            <h2>Set Location</h2>
+          </div>
+        </div>
+        <div class="form-grid">
+          <label>
+            City or address search
+            <div class="inline-field">
+              <input id="addressInput" type="text" placeholder="Example: Lynchburg, VA" />
+              <button id="searchAddressBtn" class="small-btn">Search</button>
+            </div>
+          </label>
+          <label>
+            Location name
+            <input id="manualName" type="text" placeholder="Home, Masjid, City name" />
+          </label>
+          <label>
+            Latitude
+            <input id="manualLat" type="number" step="any" placeholder="37.4138" />
+          </label>
+          <label>
+            Longitude
+            <input id="manualLng" type="number" step="any" placeholder="-79.1422" />
+          </label>
+          <button id="saveManualLocationBtn" class="primary-btn full-width">Save Manual Location</button>
+        </div>
+        <div id="messageBox" class="message-box" role="status" aria-live="polite"></div>
+      </section>
+
+      <section class="glass-card settings-card">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">Calculation</p>
+            <h2>Prayer Settings</h2>
+          </div>
+        </div>
+        <div class="form-grid settings-grid">
+          <label>
+            Calculation method
+            <select id="methodSelect">
+              <option value="MWL">Muslim World League</option>
+              <option value="ISNA">ISNA / North America</option>
+              <option value="EGYPT">Egyptian General Authority</option>
+              <option value="MAKKAH">Umm al-Qura / Makkah</option>
+              <option value="KARACHI">University of Islamic Sciences Karachi</option>
+              <option value="JAFARI">Shia Ithna-Ashari / Jafari</option>
+              <option value="CUSTOM">Custom</option>
+            </select>
+          </label>
+          <label>
+            Fajr angle
+            <input id="fajrAngle" type="number" step="0.1" />
+          </label>
+          <label>
+            Isha angle
+            <input id="ishaAngle" type="number" step="0.1" />
+          </label>
+          <label>
+            Isha fixed interval, minutes
+            <input id="ishaInterval" type="number" step="1" placeholder="Leave blank for angle" />
+          </label>
+          <label>
+            Asr method
+            <select id="asrMethod">
+              <option value="standard">Standard</option>
+              <option value="hanafi">Hanafi</option>
+            </select>
+          </label>
+          <label>
+            High-latitude adjustment
+            <select id="highLatitudeRule">
+              <option value="middle">Middle of night</option>
+              <option value="seventh">One seventh of night</option>
+              <option value="angle">Angle-based</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="glass-card offsets-card">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">Fine tuning</p>
+            <h2>Manual Offsets</h2>
+          </div>
+          <button id="resetOffsetsBtn" class="small-btn">Reset</button>
+        </div>
+        <div class="offset-grid" id="offsetGrid"></div>
+      </section>
+
+      <section class="glass-card utility-card">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">Backup & Alerts</p>
+            <h2>Utilities</h2>
+          </div>
+        </div>
+        <div class="utility-actions">
+          <button id="testToneBtn" class="ghost-btn">Test Tone</button>
+          <button id="exportBtn" class="ghost-btn">Export Settings</button>
+          <label class="file-btn">
+            Import Settings
+            <input id="importFile" type="file" accept="application/json" />
+          </label>
+        </div>
+        <p class="browser-note">Notifications and compass access usually require HTTPS. GitHub Pages uses HTTPS. Local files may have browser limitations.</p>
+      </section>
+    </main>
+
+    <section class="ad-card bottom-ad" aria-label="Advertisement placeholder">
+      <span>Sponsored</span>
+      <strong>Ad placeholder</strong>
+      <small>Designed for a small future banner without covering app content.</small>
+    </section>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
