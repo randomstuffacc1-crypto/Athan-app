@@ -1,34 +1,31 @@
 /*
-  NoorTime prayer calculation notes:
-  This app implements common open-source style astronomical prayer formulas:
-  - Solar declination and equation of time use NOAA-style approximations.
-  - Fajr/Isha are calculated when the sun reaches the selected twilight angle below the horizon.
-  - Dhuhr is solar noon adjusted for longitude/time zone/equation of time.
-  - Asr uses the shadow-factor formula with Standard = 1 and Hanafi = 2.
-  - High-latitude adjustments limit Fajr/Isha using night portions when twilight times are invalid or extreme.
-  Prayer times vary by local convention. Always confirm with a local masjid.
+  NoorTime v3
+  Static Athan web app. Prayer calculations use NOAA-style solar approximations and common open-source prayer-time formulas.
+  Times are estimates and should be confirmed with a local masjid/local authority.
 */
 
-const STORAGE_KEY = "noortime.settings.v1";
+const STORAGE_KEY = "noortime.settings.v3";
+const LEGACY_KEYS = ["noortime.settings.v1", "NoorTimeSettings", "noortimeSettings"];
 const KAABA = { lat: 21.422487, lng: 39.826206 };
 const PRAYERS = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"];
 const ICONS = { Fajr: "🌅", Sunrise: "☀️", Dhuhr: "🌤️", Asr: "🌇", Maghrib: "🌆", Isha: "🌙" };
 
 const METHODS = {
-  MWL: { label: "Muslim World League", fajrAngle: 18, ishaAngle: 17, ishaInterval: "" },
   ISNA: { label: "ISNA / North America", fajrAngle: 15, ishaAngle: 15, ishaInterval: "" },
+  MWL: { label: "Muslim World League", fajrAngle: 18, ishaAngle: 17, ishaInterval: "" },
   EGYPT: { label: "Egyptian General Authority", fajrAngle: 19.5, ishaAngle: 17.5, ishaInterval: "" },
   MAKKAH: { label: "Umm al-Qura / Makkah", fajrAngle: 18.5, ishaAngle: 0, ishaInterval: 90 },
   KARACHI: { label: "University of Islamic Sciences Karachi", fajrAngle: 18, ishaAngle: 18, ishaInterval: "" },
   JAFARI: { label: "Shia Ithna-Ashari / Jafari", fajrAngle: 16, ishaAngle: 14, ishaInterval: "" },
-  CUSTOM: { label: "Custom", fajrAngle: 18, ishaAngle: 17, ishaInterval: "" }
+  CUSTOM: { label: "Custom", fajrAngle: 15, ishaAngle: 15, ishaInterval: "" }
 };
 
 const defaultSettings = {
+  schemaVersion: 3,
   location: null,
-  method: "MWL",
-  fajrAngle: 18,
-  ishaAngle: 17,
+  method: "ISNA",
+  fajrAngle: 15,
+  ishaAngle: 15,
   ishaInterval: "",
   asrMethod: "standard",
   highLatitudeRule: "middle",
@@ -48,6 +45,7 @@ const $ = (id) => document.getElementById(id);
 window.addEventListener("DOMContentLoaded", () => {
   initializeControls();
   bindEvents();
+  setStorageStatus();
   renderAll();
   countdownTimer = setInterval(() => {
     updateClock();
@@ -56,21 +54,55 @@ window.addEventListener("DOMContentLoaded", () => {
   }, 1000);
 });
 
-function loadSettings() {
+function clone(value) { return JSON.parse(JSON.stringify(value)); }
+
+function readJson(key) {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return deepMerge(defaultSettings, saved || {});
-  } catch {
-    return structuredClone(defaultSettings);
-  }
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 }
 
-function saveSettings() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+function loadSettings() {
+  let saved = readJson(STORAGE_KEY);
+  let migratedFromLegacy = false;
+  if (!saved) {
+    for (const key of LEGACY_KEYS) {
+      saved = readJson(key);
+      if (saved) { migratedFromLegacy = true; break; }
+    }
+  }
+
+  let merged = deepMerge(defaultSettings, saved || {});
+
+  // Old builds shipped with MWL as an unintended default. If this is an old saved object, migrate it to North America.
+  if (!saved || migratedFromLegacy || !saved.schemaVersion) {
+    if (!saved || saved.method === "MWL" || !saved.method) {
+      merged.method = "ISNA";
+      merged.fajrAngle = 15;
+      merged.ishaAngle = 15;
+      merged.ishaInterval = "";
+    }
+  }
+
+  merged.schemaVersion = 3;
+  merged.location = normalizeLocation(merged.location);
+  merged.offsets = deepMerge(defaultSettings.offsets, merged.offsets || {});
+  persistSettings(merged);
+  return merged;
+}
+
+function normalizeLocation(location) {
+  if (!location) return null;
+  const lat = Number(location.lat ?? location.latitude);
+  const lng = Number(location.lng ?? location.lon ?? location.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return { name: String(location.name || location.display_name || "Saved location"), lat, lng };
 }
 
 function deepMerge(base, update) {
-  const output = structuredClone(base);
+  const output = clone(base);
+  if (!update || typeof update !== "object") return output;
   for (const key in update) {
     if (update[key] && typeof update[key] === "object" && !Array.isArray(update[key]) && key in output) {
       output[key] = deepMerge(output[key], update[key]);
@@ -81,10 +113,47 @@ function deepMerge(base, update) {
   return output;
 }
 
+function persistSettings(data) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    // Keep v1 updated temporarily so older cached HTML/JS cannot wipe out the location.
+    localStorage.setItem("noortime.settings.v1", JSON.stringify(data));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function saveSettings() {
+  settings.schemaVersion = 3;
+  settings.location = normalizeLocation(settings.location);
+  const ok = persistSettings(settings);
+  setStorageStatus(ok);
+  return ok;
+}
+
+function setStorageStatus(ok = null) {
+  const el = $("storageStatus");
+  if (!el) return;
+  if (ok === false) {
+    el.textContent = "Storage status: blocked. Turn off private browsing or allow site data.";
+    return;
+  }
+  try {
+    const testKey = "noortime.storage.test";
+    localStorage.setItem(testKey, "ok");
+    localStorage.removeItem(testKey);
+    const saved = readJson(STORAGE_KEY);
+    el.textContent = `Storage status: working. ${saved?.location ? "Location saved." : "No location saved yet."}`;
+  } catch {
+    el.textContent = "Storage status: blocked. Settings may reset on refresh.";
+  }
+}
+
 function initializeControls() {
   const today = new Date();
   $("datePicker").value = toDateInput(today);
-  $("methodSelect").value = settings.method;
+  $("methodSelect").value = settings.method || "ISNA";
   $("fajrAngle").value = settings.fajrAngle;
   $("ishaAngle").value = settings.ishaAngle;
   $("ishaInterval").value = settings.ishaInterval;
@@ -92,27 +161,30 @@ function initializeControls() {
   $("highLatitudeRule").value = settings.highLatitudeRule;
 
   if (settings.location) {
-    $("manualName").value = settings.location.name || "Saved location";
-    $("manualLat").value = settings.location.lat;
-    $("manualLng").value = settings.location.lng;
+    $("manualName").value = settings.location.name;
+    $("manualLat").value = Number(settings.location.lat).toFixed(6);
+    $("manualLng").value = Number(settings.location.lng).toFixed(6);
   }
 
   const offsetGrid = $("offsetGrid");
   offsetGrid.innerHTML = "";
   PRAYERS.forEach((name) => {
     const label = document.createElement("label");
-    label.innerHTML = `${name} offset, minutes <input id="offset-${name}" type="number" step="1" value="${settings.offsets[name] || 0}" />`;
+    label.innerHTML = `${name}<input id="offset-${name}" type="number" step="1" value="${settings.offsets[name] || 0}" />`;
     offsetGrid.appendChild(label);
   });
 }
 
 function bindEvents() {
+  document.querySelectorAll(".nav-btn").forEach((btn) => {
+    btn.addEventListener("click", () => showPage(btn.dataset.page));
+  });
+
   $("useLocationBtn").addEventListener("click", useCurrentLocation);
+  $("useLocationBtnPage").addEventListener("click", useCurrentLocation);
   $("saveManualLocationBtn").addEventListener("click", saveManualLocation);
   $("searchAddressBtn").addEventListener("click", searchAddress);
-  $("addressInput").addEventListener("keydown", (event) => {
-    if (event.key === "Enter") searchAddress();
-  });
+  $("addressInput").addEventListener("keydown", (event) => { if (event.key === "Enter") searchAddress(); });
   $("datePicker").addEventListener("change", renderAll);
   $("enableCompassBtn").addEventListener("click", enableCompass);
   $("enableNotificationsBtn").addEventListener("click", enableNotifications);
@@ -120,7 +192,7 @@ function bindEvents() {
   $("exportBtn").addEventListener("click", exportSettings);
   $("importFile").addEventListener("change", importSettings);
   $("resetOffsetsBtn").addEventListener("click", () => {
-    settings.offsets = structuredClone(defaultSettings.offsets);
+    settings.offsets = clone(defaultSettings.offsets);
     saveSettings();
     initializeControls();
     bindOffsetInputs();
@@ -133,6 +205,14 @@ function bindEvents() {
     $(id).addEventListener("input", onSettingsChanged);
   });
   bindOffsetInputs();
+}
+
+function showPage(page) {
+  document.querySelectorAll(".page").forEach((el) => el.classList.toggle("active", el.id === `page-${page}`));
+  document.querySelectorAll(".nav-btn").forEach((el) => el.classList.toggle("active", el.dataset.page === page));
+  const active = $(`page-${page}`);
+  $("pageTitle").textContent = active?.dataset.title || "NoorTime";
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function bindOffsetInputs() {
@@ -148,7 +228,7 @@ function bindOffsetInputs() {
 }
 
 function onSettingsChanged(event) {
-  const method = $("methodSelect").value;
+  const method = $("methodSelect").value || "ISNA";
   const previous = settings.method;
   settings.method = method;
 
@@ -179,6 +259,8 @@ function renderAll() {
     calculateAndRenderQibla();
   } else {
     renderEmptyPrayerList();
+    $("qiblaDegrees").textContent = "--°";
+    $("qiblaStatus").textContent = "Save a location to calculate qibla.";
   }
 }
 
@@ -189,11 +271,11 @@ function renderLocation() {
 function updateClock() {
   const now = new Date();
   $("localTime").textContent = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
-  $("todayDate").textContent = now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  $("todayDate").textContent = now.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 }
 
 function renderEmptyPrayerList() {
-  $("prayerList").innerHTML = `<div class="prayer-row"><div class="prayer-icon">📍</div><div><div class="prayer-name">Choose a location</div><div class="prayer-note">Use GPS, city search, or latitude/longitude.</div></div><div class="prayer-time">--:--</div></div>`;
+  $("prayerList").innerHTML = `<div class="prayer-row"><div class="prayer-icon">📍</div><div><div class="prayer-name">Choose location</div><div class="prayer-note">Use GPS, search, or coordinates.</div></div><div class="prayer-time">--:--</div></div>`;
   $("nextPrayerName").textContent = "Set location";
   $("nextPrayerTime").textContent = "--:--";
   $("countdown").textContent = "--:--:--";
@@ -210,10 +292,7 @@ function calculateAndRenderPrayers() {
     row.className = `prayer-row ${next && next.name === name && isSameDate(selectedDate, new Date()) ? "next" : ""}`;
     row.innerHTML = `
       <div class="prayer-icon">${ICONS[name]}</div>
-      <div>
-        <div class="prayer-name">${name}</div>
-        <div class="prayer-note">${settings.offsets[name] ? `${settings.offsets[name] > 0 ? "+" : ""}${settings.offsets[name]} min adjustment` : "Local calculated time"}</div>
-      </div>
+      <div><div class="prayer-name">${name}</div><div class="prayer-note">${settings.offsets[name] ? `${settings.offsets[name] > 0 ? "+" : ""}${settings.offsets[name]} min` : METHODS[settings.method].label}</div></div>
       <div class="prayer-time">${formatTime(todaysTimes[name])}</div>`;
     list.appendChild(row);
   });
@@ -250,7 +329,7 @@ function getNextPrayer(times) {
 }
 
 function checkPrayerNotifications() {
-  if (!settings.notificationsEnabled || Notification.permission !== "granted" || !todaysTimes) return;
+  if (!settings.notificationsEnabled || !("Notification" in window) || Notification.permission !== "granted" || !todaysTimes) return;
   const now = new Date();
   PRAYERS.forEach((name) => {
     const time = todaysTimes[name];
@@ -266,7 +345,8 @@ function checkPrayerNotifications() {
 
 async function useCurrentLocation() {
   if (!navigator.geolocation) {
-    showMessage("Geolocation is not supported by this browser. Enter your location manually.", "error");
+    showMessage("Geolocation is not supported. Enter your location manually.", "error");
+    showPage("location");
     return;
   }
   showMessage("Requesting GPS location...");
@@ -282,36 +362,32 @@ async function useCurrentLocation() {
     initializeControls();
     bindOffsetInputs();
     renderAll();
-    showMessage("Location saved from GPS.", "success");
+    showMessage("Location saved. Refresh the page to confirm it remains saved.", "success");
+    showPage("prayer");
   }, (error) => {
     const reason = error.code === 1 ? "GPS permission was denied." : "Unable to get GPS location.";
-    showMessage(`${reason} You can still enter a city or latitude/longitude manually.`, "error");
+    showMessage(`${reason} Enter a city or coordinates manually.`, "error");
+    showPage("location");
   }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
 }
 
 async function searchAddress() {
   const query = $("addressInput").value.trim();
-  if (!query) {
-    showMessage("Enter a city or address to search.", "error");
-    return;
-  }
+  if (!query) { showMessage("Enter a city or address to search.", "error"); return; }
   showMessage("Searching location...");
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
     const response = await fetch(url, { headers: { "Accept": "application/json" } });
     if (!response.ok) throw new Error("Search failed");
     const results = await response.json();
-    if (!results.length) {
-      showMessage("City or address not found. Try a more specific search or enter coordinates manually.", "error");
-      return;
-    }
+    if (!results.length) { showMessage("City or address not found. Try coordinates.", "error"); return; }
     const place = results[0];
     $("manualName").value = place.display_name.split(",").slice(0, 3).join(",");
     $("manualLat").value = parseFloat(place.lat).toFixed(6);
     $("manualLng").value = parseFloat(place.lon).toFixed(6);
-    showMessage("Location found. Review it, then press Save Manual Location.", "success");
+    showMessage("Location found. Tap Save Location.", "success");
   } catch {
-    showMessage("Location search failed. Nominatim may block local file requests in some browsers. Enter latitude/longitude manually or deploy to HTTPS.", "error");
+    showMessage("Search failed. Enter latitude and longitude manually or deploy to HTTPS.", "error");
   }
 }
 
@@ -328,19 +404,20 @@ function saveManualLocation() {
   const lng = parseFloat($("manualLng").value);
   const name = $("manualName").value.trim() || "Manual location";
   if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
-    showMessage("Invalid latitude or longitude. Latitude must be -90 to 90 and longitude must be -180 to 180.", "error");
+    showMessage("Invalid latitude or longitude. Latitude is -90 to 90. Longitude is -180 to 180.", "error");
     return;
   }
   settings.location = { name, lat, lng };
-  saveSettings();
+  const ok = saveSettings();
   renderAll();
-  showMessage("Manual location saved.", "success");
+  showMessage(ok ? "Location saved on this device." : "Location could not be stored. Browser storage may be blocked.", ok ? "success" : "error");
+  if (ok) showPage("prayer");
 }
 
 function calculateAndRenderQibla() {
   qiblaBearing = calculateBearing(settings.location.lat, settings.location.lng, KAABA.lat, KAABA.lng);
   $("qiblaDegrees").textContent = `${qiblaBearing.toFixed(1)}°`;
-  $("qiblaStatus").textContent = `${qiblaBearing.toFixed(1)}° clockwise from true north toward the Kaaba.`;
+  $("qiblaStatus").textContent = `${qiblaBearing.toFixed(1)}° from true north toward the Kaaba.`;
   updateCompassVisual();
 }
 
@@ -354,32 +431,31 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
 
 async function enableCompass() {
   if (!window.DeviceOrientationEvent) {
-    showMessage("Compass/device orientation is not supported on this browser. Numeric qibla direction still works.", "error");
+    showMessage("Compass/device orientation is not supported. Numeric qibla still works.", "error");
     return;
   }
   try {
     if (typeof DeviceOrientationEvent.requestPermission === "function") {
       const permission = await DeviceOrientationEvent.requestPermission();
-      if (permission !== "granted") {
-        showMessage("Compass permission was denied. Numeric qibla direction still works.", "error");
-        return;
-      }
+      if (permission !== "granted") { showMessage("Compass permission denied. Numeric qibla still works.", "error"); return; }
     }
     window.addEventListener("deviceorientation", handleOrientation, true);
-    showMessage("Live compass mode enabled. Calibrate your phone by moving it in a figure-eight motion.", "success");
+    window.addEventListener("deviceorientationabsolute", handleOrientation, true);
+    showMessage("Live compass enabled. Move phone in a figure-eight to calibrate.", "success");
   } catch {
-    showMessage("Could not enable compass permission. Numeric qibla direction still works.", "error");
+    showMessage("Could not enable compass. Use the numeric qibla bearing.", "error");
   }
 }
 
 function handleOrientation(event) {
   let heading = null;
   if (typeof event.webkitCompassHeading === "number") heading = event.webkitCompassHeading;
+  else if (event.absolute && typeof event.alpha === "number") heading = 360 - event.alpha;
   else if (typeof event.alpha === "number") heading = 360 - event.alpha;
   if (heading !== null) {
     compassHeading = normalizeDegrees(heading);
     updateCompassVisual();
-    $("qiblaStatus").textContent = `Turn until the green arrow points upward. Current heading: ${compassHeading.toFixed(0)}°.`;
+    if (qiblaBearing !== null) $("qiblaStatus").textContent = `Turn until the green arrow points upward. Heading: ${compassHeading.toFixed(0)}°.`;
   }
 }
 
@@ -390,20 +466,11 @@ function updateCompassVisual() {
 }
 
 async function enableNotifications() {
-  if (!("Notification" in window)) {
-    showMessage("This browser does not support notifications.", "error");
-    return;
-  }
+  if (!("Notification" in window)) { showMessage("This browser does not support notifications.", "error"); return; }
   const permission = await Notification.requestPermission();
-  if (permission === "granted") {
-    settings.notificationsEnabled = true;
-    saveSettings();
-    showMessage("Prayer notifications enabled while NoorTime is open.", "success");
-  } else {
-    settings.notificationsEnabled = false;
-    saveSettings();
-    showMessage("Notification permission was denied. Alerts will not show.", "error");
-  }
+  settings.notificationsEnabled = permission === "granted";
+  saveSettings();
+  showMessage(permission === "granted" ? "Alerts enabled while NoorTime is open." : "Notification permission denied.", permission === "granted" ? "success" : "error");
 }
 
 function playTestTone(quiet = false) {
@@ -421,9 +488,7 @@ function playTestTone(quiet = false) {
     osc.start();
     osc.stop(audio.currentTime + 1);
     if (!quiet) showMessage("Test tone played.", "success");
-  } catch {
-    showMessage("Audio test failed in this browser.", "error");
-  }
+  } catch { showMessage("Audio test failed in this browser.", "error"); }
 }
 
 function exportSettings() {
@@ -445,16 +510,14 @@ function importSettings(event) {
     try {
       const imported = JSON.parse(reader.result);
       settings = deepMerge(defaultSettings, imported);
+      settings.location = normalizeLocation(settings.location);
       saveSettings();
       initializeControls();
       bindOffsetInputs();
       renderAll();
       showMessage("Settings imported successfully.", "success");
-    } catch {
-      showMessage("Invalid settings JSON file.", "error");
-    } finally {
-      event.target.value = "";
-    }
+    } catch { showMessage("Invalid settings JSON file.", "error"); }
+    finally { event.target.value = ""; }
   };
   reader.readAsText(file);
 }
@@ -483,7 +546,6 @@ function getPrayerTimes(date, lat, lng, config) {
   let asr = Number.isFinite(asrHA) ? dateAtHours(baseDate, noonHours + asrHA / 15) : dateAtHours(baseDate, noonHours + 4);
 
   ({ fajr, isha } = applyHighLatitudeAdjustments({ fajr, sunrise, maghrib, isha, baseDate, config }));
-
   const times = { Fajr: fajr, Sunrise: sunrise, Dhuhr: dhuhr, Asr: asr, Maghrib: maghrib, Isha: isha };
   PRAYERS.forEach((name) => { times[name] = addMinutes(times[name], parseInt(config.offsets[name] || 0, 10)); });
   return times;
@@ -492,23 +554,16 @@ function getPrayerTimes(date, lat, lng, config) {
 function applyHighLatitudeAdjustments({ fajr, sunrise, maghrib, isha, baseDate, config }) {
   const nightLength = minutesBetween(maghrib, addMinutes(sunrise, 24 * 60));
   let fajrPortion, ishaPortion;
-  if (config.highLatitudeRule === "seventh") {
-    fajrPortion = ishaPortion = nightLength / 7;
-  } else if (config.highLatitudeRule === "angle") {
+  if (config.highLatitudeRule === "seventh") fajrPortion = ishaPortion = nightLength / 7;
+  else if (config.highLatitudeRule === "angle") {
     fajrPortion = nightLength * Math.abs(config.fajrAngle) / 60;
-    ishaPortion = nightLength * Math.max(1, Math.abs(config.ishaAngle || 17)) / 60;
-  } else {
-    fajrPortion = ishaPortion = nightLength / 2;
-  }
+    ishaPortion = nightLength * Math.max(1, Math.abs(config.ishaAngle || 15)) / 60;
+  } else fajrPortion = ishaPortion = nightLength / 2;
+
   const latestFajr = addMinutes(sunrise, -fajrPortion);
   const earliestIsha = addMinutes(maghrib, ishaPortion);
-
-  if (!fajr || !Number.isFinite(fajr.getTime()) || fajr < new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 0, 0) || minutesBetween(fajr, sunrise) > fajrPortion) {
-    fajr = latestFajr;
-  }
-  if (!isha || !Number.isFinite(isha.getTime()) || minutesBetween(maghrib, isha) > ishaPortion) {
-    isha = earliestIsha;
-  }
+  if (!fajr || !Number.isFinite(fajr.getTime()) || fajr < new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 0, 0) || minutesBetween(fajr, sunrise) > fajrPortion) fajr = latestFajr;
+  if (!isha || !Number.isFinite(isha.getTime()) || minutesBetween(maghrib, isha) > ishaPortion) isha = earliestIsha;
   return { fajr, isha };
 }
 
@@ -520,9 +575,7 @@ function solarParams(dayOfYearValue) {
 }
 
 function hourAngleForSunAltitude(lat, declination, altitude) {
-  const latRad = degToRad(lat);
-  const decRad = degToRad(declination);
-  const altRad = degToRad(altitude);
+  const latRad = degToRad(lat), decRad = degToRad(declination), altRad = degToRad(altitude);
   const cosH = (Math.sin(altRad) - Math.sin(latRad) * Math.sin(decRad)) / (Math.cos(latRad) * Math.cos(decRad));
   if (cosH < -1 || cosH > 1) return NaN;
   return radToDeg(Math.acos(cosH));
@@ -543,45 +596,19 @@ function dateAtHours(baseDate, hours) {
 
 function showMessage(message, type = "") {
   const box = $("messageBox");
+  if (!box) return;
   box.className = `message-box ${type}`;
   box.textContent = message;
 }
-
-function dayOfYear(date) {
-  const start = new Date(date.getFullYear(), 0, 0);
-  return Math.floor((date - start) / 86400000);
-}
-function parseDateInput(value) {
-  if (!value) return null;
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
-function toDateInput(date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-function isSameDate(a, b) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-function formatTime(date) {
-  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-}
-function msToCountdown(ms) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
-function addMinutes(date, minutes) {
-  return new Date(date.getTime() + minutes * 60000);
-}
-function minutesBetween(a, b) {
-  return (b.getTime() - a.getTime()) / 60000;
-}
+function dayOfYear(date) { return Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 86400000); }
+function parseDateInput(value) { if (!value) return null; const [year, month, day] = value.split("-").map(Number); return new Date(year, month - 1, day); }
+function toDateInput(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; }
+function isSameDate(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+function formatTime(date) { return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
+function msToCountdown(ms) { const totalSeconds = Math.floor(ms / 1000); const hours = Math.floor(totalSeconds / 3600); const minutes = Math.floor((totalSeconds % 3600) / 60); const seconds = totalSeconds % 60; return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`; }
+function addMinutes(date, minutes) { return new Date(date.getTime() + minutes * 60000); }
+function minutesBetween(a, b) { return (b.getTime() - a.getTime()) / 60000; }
 function degToRad(deg) { return deg * Math.PI / 180; }
 function radToDeg(rad) { return rad * 180 / Math.PI; }
 function normalizeDegrees(deg) { return ((deg % 360) + 360) % 360; }
-function numberOrDefault(value, fallback) {
-  const number = parseFloat(value);
-  return Number.isFinite(number) ? number : fallback;
-}
+function numberOrDefault(value, fallback) { const number = parseFloat(value); return Number.isFinite(number) ? number : fallback; }

@@ -1,95 +1,63 @@
 # NoorTime
 
-NoorTime is a polished, mobile-friendly single-page Athan web app. It calculates daily Islamic prayer times from the user's location, shows the next prayer and live countdown, calculates qibla direction, supports manual prayer-time adjustments, and stores settings locally in the browser.
+NoorTime is a static, mobile-first Athan web app for daily prayer times, qibla direction, calculation settings, reminders, and backup/import settings.
 
-## Features
+## What changed in this build
 
-- Automatic GPS location using the browser geolocation API
-- Manual city/address search using OpenStreetMap Nominatim
-- Manual latitude and longitude entry
-- Daily prayer times for Fajr, Sunrise, Dhuhr, Asr, Maghrib, and Isha
-- Next prayer highlight and live countdown
-- Date picker for viewing another date
-- Calculation method presets:
-  - Muslim World League
-  - ISNA / North America
-  - Egyptian General Authority
-  - Umm al-Qura / Makkah
-  - University of Islamic Sciences Karachi
-  - Shia Ithna-Ashari / Jafari
-  - Custom
-- Manual Fajr and Isha angle overrides
-- Optional Isha fixed interval
-- Standard or Hanafi Asr calculation
-- High-latitude adjustment options
-- Per-prayer minute offsets
-- Qibla bearing to the Kaaba with a visual compass dial
-- Optional live compass mode when supported by the device/browser
-- Browser notifications while the app is open
-- Test tone button with no autoplay
-- Local settings persistence with localStorage
-- Export and import settings as JSON
-- Non-intrusive banner ad placeholders
-- Responsive dark-mode glassmorphism design
+- App-style bottom navigation: Prayer, Location, Qibla, Settings, More.
+- Home screen only shows the next prayer countdown and daily prayer list.
+- Default calculation method is ISNA / North America.
+- Settings and location are saved in `localStorage` using `noortime.settings.v3`.
+- Legacy settings from earlier NoorTime builds are migrated.
+- Smaller, iPhone-friendly typography and spacing.
+- Numeric qibla bearing always works after location is saved.
+- Live compass is optional and depends on browser/device support.
 
-## How to run locally
+## Run locally
 
-Option 1: Open directly
+Open `index.html` in a browser.
 
-1. Download or clone this folder.
-2. Open `index.html` in your browser.
+Some browser features are limited when opened as a local file:
 
-Option 2: Run a simple local server
+- GPS may work inconsistently.
+- Compass may not work.
+- Notifications may be blocked.
 
-```bash
-python3 -m http.server 8000
-```
+For best testing, deploy to GitHub Pages or run a local server.
 
-Then open:
+## Deploy to GitHub Pages
 
-```text
-http://localhost:8000
-```
+1. Upload `index.html`, `styles.css`, `app.js`, and this `README.md` to the root of your GitHub repository.
+2. Go to repository Settings.
+3. Open Pages.
+4. Select your branch, usually `main`.
+5. Select root folder.
+6. Save.
+7. Open the GitHub Pages URL after deployment finishes.
 
-A local server is recommended because some browser APIs and external geocoding requests can behave differently when opened as a raw local file.
-
-## How to deploy to GitHub Pages
-
-1. Create a new GitHub repository, or use an existing one.
-2. Upload these files to the repository root:
-   - `index.html`
-   - `styles.css`
-   - `app.js`
-   - `README.md`
-3. In GitHub, go to **Settings** → **Pages**.
-4. Under **Build and deployment**, choose **Deploy from a branch**.
-5. Choose your main branch and root folder.
-6. Save, then open the GitHub Pages URL after deployment finishes.
+GitHub Pages uses HTTPS, which helps with GPS, compass permissions, and notifications.
 
 ## Features that require HTTPS
 
-GitHub Pages uses HTTPS, which is good for NoorTime.
+- Browser GPS/geolocation works best on HTTPS.
+- Live compass/device orientation often requires HTTPS and user permission.
+- Browser notifications usually require HTTPS and manual user approval.
 
-These features generally require HTTPS or localhost:
+## Location storage
 
-- Browser GPS/geolocation
-- Browser notifications
-- Device orientation/live compass permission
+Location and app settings are saved locally in the browser using `localStorage`. They are not sent to a backend because this app has no backend.
 
-Manual latitude/longitude entry and prayer time calculation do not require HTTPS.
+If location resets after refresh, check:
+
+- You are not in private browsing mode.
+- Browser storage/site data is not blocked.
+- You uploaded the latest `app.js` file.
+- You hard refreshed the GitHub Pages site after uploading the update.
 
 ## Ads
 
-The app includes small placeholder ad cards near the top and bottom of the page. They are intentionally non-intrusive and do not cover the content.
+The ad cards are placeholders. Replace the contents of the `.ad-card` sections in `index.html` with your future ad code, such as Google AdSense. Avoid popups, autoplay video, and overlays.
 
-To replace them with real ad code later, edit the `<section class="ad-card">` blocks in `index.html` and insert your ad network code, such as Google AdSense. Avoid popups, autoplay videos, sticky overlays, or anything that blocks prayer times.
+## Disclaimer
 
-## Prayer time accuracy disclaimer
-
-NoorTime calculates estimated prayer times using astronomical formulas and common calculation-method presets. Local masjids may use different conventions, safety margins, high-latitude rules, Ramadan timetables, or local adjustments.
-
-Always confirm prayer times with your local masjid or trusted local Islamic authority.
-
-## Privacy
-
-NoorTime does not require a login or backend. Settings are stored in your own browser using localStorage. If you use city/address search, the search request is sent to OpenStreetMap Nominatim to convert the address into coordinates.
+Prayer times are estimates based on location, calculation method, and astronomical formulas. Users should confirm prayer times with their local masjid or trusted Islamic authority, especially during Ramadan, for high-latitude locations, or where local conventions differ.
