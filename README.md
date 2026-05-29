@@ -1,63 +1,37 @@
 # NoorTime
 
-NoorTime is a static, mobile-first Athan web app for daily prayer times, qibla direction, calculation settings, reminders, and backup/import settings.
+NoorTime is a premium, static, mobile-first web app for tracking Islamic prayer times and the Qibla. It features a clean, minimal "Apple-like" design and requires absolutely no backend, build system, or paid APIs. 
 
-## What changed in this build
+## Features
+- **Frontend Only:** Pure HTML, CSS, and vanilla JS. Works immediately by opening `index.html`.
+- **Accurate Calculations:** Computes astronomical equations directly in the browser. 
+- **Persisted Storage:** Reliably saves your location and settings to `localStorage`. Refreshing the app will never lose your data.
+- **ISNA Default:** Designed specifically with North American default parameters.
+- **Qibla Compass:** Uses standard coordinates and device orientation APIs to point to the Kaaba.
+- **Tab Navigation:** Polished mobile-app style bottom navigation bar.
 
-- App-style bottom navigation: Prayer, Location, Qibla, Settings, More.
-- Home screen only shows the next prayer countdown and daily prayer list.
-- Default calculation method is ISNA / North America.
-- Settings and location are saved in `localStorage` using `noortime.settings.v3`.
-- Legacy settings from earlier NoorTime builds are migrated.
-- Smaller, iPhone-friendly typography and spacing.
-- Numeric qibla bearing always works after location is saved.
-- Live compass is optional and depends on browser/device support.
+## How to Run Locally
+Because this app is entirely static, running it is as simple as:
+1. Downloading the files.
+2. Double-clicking `index.html` to open it in any modern browser.
 
-## Run locally
+## How to Deploy on GitHub Pages
+1. Create a new repository on GitHub.
+2. Upload `index.html`, `styles.css`, `app.js`, and this `README.md`.
+3. Go to Repo **Settings > Pages**.
+4. Select `main` branch as the source and click Save.
+5. In a few minutes, your site will be live!
 
-Open `index.html` in a browser.
+## Features Requiring HTTPS
+If you are running the app locally using a `file://` URL, some features may be blocked by your browser's security policies. For full functionality, deploy the app via GitHub Pages (which provides HTTPS automatically).
+- **Geolocation:** Browsers require HTTPS to request user GPS data.
+- **Live Compass:** iOS Safari (`DeviceOrientationEvent`) and Chrome require HTTPS to access accelerometer and gyroscope data.
+- **Notifications:** The Web Notifications API requires HTTPS.
 
-Some browser features are limited when opened as a local file:
+## Adding Ads
+In `index.html`, there is a `.ad-placeholder` section on the Prayer tab. You can safely replace this `<div>` with standard Google AdSense code `<ins>` tags and the required AdSense script in the `<head>`.
 
-- GPS may work inconsistently.
-- Compass may not work.
-- Notifications may be blocked.
+## Data Management & Storage
+NoorTime utilizes a robust unified local storage key (`noortime.settings.v4`) to ensure your configurations never reset. If you ever experience data corruption, you can wipe it by clicking **"Reset App to Defaults"** in the **More** tab.
 
-For best testing, deploy to GitHub Pages or run a local server.
-
-## Deploy to GitHub Pages
-
-1. Upload `index.html`, `styles.css`, `app.js`, and this `README.md` to the root of your GitHub repository.
-2. Go to repository Settings.
-3. Open Pages.
-4. Select your branch, usually `main`.
-5. Select root folder.
-6. Save.
-7. Open the GitHub Pages URL after deployment finishes.
-
-GitHub Pages uses HTTPS, which helps with GPS, compass permissions, and notifications.
-
-## Features that require HTTPS
-
-- Browser GPS/geolocation works best on HTTPS.
-- Live compass/device orientation often requires HTTPS and user permission.
-- Browser notifications usually require HTTPS and manual user approval.
-
-## Location storage
-
-Location and app settings are saved locally in the browser using `localStorage`. They are not sent to a backend because this app has no backend.
-
-If location resets after refresh, check:
-
-- You are not in private browsing mode.
-- Browser storage/site data is not blocked.
-- You uploaded the latest `app.js` file.
-- You hard refreshed the GitHub Pages site after uploading the update.
-
-## Ads
-
-The ad cards are placeholders. Replace the contents of the `.ad-card` sections in `index.html` with your future ad code, such as Google AdSense. Avoid popups, autoplay video, and overlays.
-
-## Disclaimer
-
-Prayer times are estimates based on location, calculation method, and astronomical formulas. Users should confirm prayer times with their local masjid or trusted Islamic authority, especially during Ramadan, for high-latitude locations, or where local conventions differ.
+**Disclaimer:** Prayer times calculated astronomically are highly accurate estimates, but exact minute-to-minute timing can vary based on geography, weather, and specific Islamic jurisprudential interpretations. Always confirm times with your local masjid or trusted authority.
