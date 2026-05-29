@@ -1,232 +1,232 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NoorTime</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
-    <link rel="stylesheet" href="styles.css">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#071310" />
+  <meta name="description" content="NoorTime is a static, mobile-friendly prayer times and Qibla web app." />
+  <title>NoorTime</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <div id="app-container">
+  <div class="app-shell">
+    <main class="app-main" id="appMain">
+      <section class="page active" id="page-prayer" data-page="prayer" aria-label="Prayer">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">NoorTime</p>
+            <h1>Prayer</h1>
+          </div>
+          <div class="time-chip" id="compactClock">--:--</div>
+        </header>
 
-        <main id="tab-prayer" class="view active">
-            <header>
-                <h1 class="app-title">NoorTime</h1>
-                <div class="location-header">
-                    <span class="material-symbols-rounded">location_on</span>
-                    <span id="header-location-name">No location saved</span>
-                </div>
-            </header>
+        <div id="prayerNoLocation" class="empty-state hidden">
+          <div class="empty-icon">⌖</div>
+          <h2>Set your location</h2>
+          <p>Save a GPS, city, or manual latitude/longitude location to calculate prayer times.</p>
+          <button class="primary-btn" data-switch="location">Open Location</button>
+        </div>
 
-            <div class="hero-card">
-                <div class="next-prayer-label">Next Prayer</div>
-                <div id="next-prayer-name" class="next-prayer-name">--</div>
-                <div id="next-prayer-time" class="next-prayer-time">--:--</div>
-                <div id="countdown" class="countdown">-00:00:00</div>
+        <div id="prayerContent" class="stack">
+          <div class="meta-row">
+            <div>
+              <span class="muted">Location</span>
+              <strong id="homeLocationName">No location saved</strong>
             </div>
-
-            <div class="date-selector">
-                <input type="date" id="date-input">
-                <div id="local-date-display" class="date-display">Today</div>
+            <div class="align-right">
+              <span class="muted">Date</span>
+              <strong id="homeDateText">Today</strong>
             </div>
+          </div>
 
-            <div class="prayer-list">
-                <div class="prayer-item" data-prayer="fajr">
-                    <span class="p-name">Fajr</span>
-                    <span class="p-time" id="time-fajr">--:--</span>
-                </div>
-                <div class="prayer-item" data-prayer="sunrise">
-                    <span class="p-name">Sunrise</span>
-                    <span class="p-time" id="time-sunrise">--:--</span>
-                </div>
-                <div class="prayer-item" data-prayer="dhuhr">
-                    <span class="p-name">Dhuhr</span>
-                    <span class="p-time" id="time-dhuhr">--:--</span>
-                </div>
-                <div class="prayer-item" data-prayer="asr">
-                    <span class="p-name">Asr</span>
-                    <span class="p-time" id="time-asr">--:--</span>
-                </div>
-                <div class="prayer-item" data-prayer="maghrib">
-                    <span class="p-name">Maghrib</span>
-                    <span class="p-time" id="time-maghrib">--:--</span>
-                </div>
-                <div class="prayer-item" data-prayer="isha">
-                    <span class="p-name">Isha</span>
-                    <span class="p-time" id="time-isha">--:--</span>
-                </div>
+          <article class="next-card">
+            <div>
+              <p class="eyebrow">Next prayer</p>
+              <h2 id="nextPrayerName">--</h2>
             </div>
+            <div class="countdown" id="nextCountdown">--:--:--</div>
+            <p class="next-time" id="nextPrayerTime">--</p>
+          </article>
 
-            <div class="ad-placeholder">
-                <span class="ad-label">Sponsored</span>
-                <p>Ad space placeholder</p>
+          <label class="field compact-field">
+            <span>View date</span>
+            <input type="date" id="dateSelector" />
+          </label>
+
+          <div class="card compact-card">
+            <div class="section-title">
+              <h2>Today’s times</h2>
+              <span id="timezoneText">Local time</span>
             </div>
-        </main>
+            <div class="prayer-list" id="prayerList"></div>
+          </div>
 
-        <main id="tab-location" class="view">
-            <header><h2>Location</h2></header>
-            <div class="content-padded">
-                <div class="card current-loc-card">
-                    <h3>Current Saved Location</h3>
-                    <p id="saved-loc-display" class="highlight-text">None</p>
-                    <p id="saved-coords-display" class="sub-text">--</p>
-                    <button id="btn-clear-loc" class="btn-secondary mt-10">Clear Location</button>
-                </div>
+          <div class="ad-card" aria-label="Sponsored advertisement placeholder">
+            <span>Sponsored</span>
+            <p>Your small banner ad can go here.</p>
+          </div>
+        </div>
+      </section>
 
-                <div class="card mt-20">
-                    <h3>Update Location</h3>
-                    <button id="btn-auto-loc" class="btn-primary mt-10">
-                        <span class="material-symbols-rounded">my_location</span> Use GPS
-                    </button>
+      <section class="page" id="page-location" data-page="location" aria-label="Location">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">NoorTime</p>
+            <h1>Location</h1>
+          </div>
+        </header>
 
-                    <div class="divider">or search</div>
+        <div class="card status-card">
+          <p class="eyebrow">Saved location</p>
+          <h2 id="savedLocationTitle">No location saved</h2>
+          <p id="savedLocationDetails" class="muted">Prayer times and Qibla need a saved location.</p>
+        </div>
 
-                    <div class="input-group">
-                        <input type="text" id="loc-search-input" placeholder="City, Country">
-                        <button id="btn-search-loc" class="btn-secondary">Search</button>
-                    </div>
-                    <p id="loc-status" class="status-msg"></p>
+        <div class="grid-actions">
+          <button class="primary-btn" id="useGpsBtn">Use Current Location</button>
+          <button class="ghost-btn" id="clearLocationBtn">Clear Location</button>
+        </div>
+        <p class="note" id="gpsStatus">GPS is optional. Manual location works even if GPS is denied.</p>
 
-                    <div class="divider">or manual coordinates</div>
-                    <div class="coord-inputs">
-                        <input type="number" id="manual-lat" placeholder="Latitude" step="any">
-                        <input type="number" id="manual-lon" placeholder="Longitude" step="any">
-                    </div>
-                    <button id="btn-save-manual-loc" class="btn-primary mt-10">Save Coordinates</button>
-                </div>
+        <div class="card">
+          <div class="section-title"><h2>Search city or address</h2></div>
+          <div class="search-row">
+            <input id="citySearchInput" type="search" placeholder="Example: Lynchburg, VA" autocomplete="off" />
+            <button id="citySearchBtn" class="small-btn">Search</button>
+          </div>
+          <div id="searchResults" class="search-results"></div>
+        </div>
+
+        <div class="card">
+          <div class="section-title"><h2>Manual coordinates</h2></div>
+          <div class="two-col">
+            <label class="field"><span>Latitude</span><input id="manualLat" type="number" step="0.000001" placeholder="37.4138" /></label>
+            <label class="field"><span>Longitude</span><input id="manualLon" type="number" step="0.000001" placeholder="-79.1422" /></label>
+          </div>
+          <label class="field"><span>Location name</span><input id="manualName" type="text" placeholder="Home" /></label>
+          <button class="primary-btn full" id="saveManualBtn">Save Manual Location</button>
+        </div>
+      </section>
+
+      <section class="page" id="page-qibla" data-page="qibla" aria-label="Qibla">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">NoorTime</p>
+            <h1>Qibla</h1>
+          </div>
+        </header>
+
+        <div id="qiblaNoLocation" class="empty-state hidden">
+          <div class="empty-icon">◌</div>
+          <h2>No location saved</h2>
+          <p>Save a location first to calculate Qibla direction.</p>
+          <button class="primary-btn" data-switch="location">Set Location</button>
+        </div>
+
+        <div id="qiblaContent" class="stack">
+          <div class="card center-card">
+            <p class="eyebrow">Direction from true north</p>
+            <div class="degree-readout" id="qiblaDegrees">--°</div>
+            <p id="qiblaText" class="muted">Calculated from your saved location to the Kaaba.</p>
+          </div>
+
+          <div class="compass-card">
+            <div class="compass" id="compassDial">
+              <span class="north">N</span>
+              <span class="east">E</span>
+              <span class="south">S</span>
+              <span class="west">W</span>
+              <div class="qibla-marker" id="qiblaMarker"></div>
+              <div class="phone-heading"></div>
+              <div class="compass-center"></div>
             </div>
-        </main>
+          </div>
 
-        <main id="tab-qibla" class="view">
-            <header><h2>Qibla</h2></header>
-            <div class="content-padded flex-center">
-                <div id="qibla-status" class="status-msg mb-20"></div>
-                <div class="qibla-bearing">
-                    <span id="qibla-degree">--</span>°
-                </div>
-                <p class="sub-text mb-20">From True North</p>
+          <button class="primary-btn full" id="enableCompassBtn">Enable Live Compass</button>
+          <p class="note" id="compassStatus">Numeric Qibla works with saved location. Live compass depends on device support and HTTPS.</p>
+        </div>
+      </section>
 
-                <div class="compass-container">
-                    <div id="compass-dial" class="compass-dial">
-                        <div class="north-marker">N</div>
-                        <div id="kaaba-marker" class="kaaba-marker">
-                            <span class="material-symbols-rounded">mosque</span>
-                        </div>
-                    </div>
-                </div>
+      <section class="page" id="page-settings" data-page="settings" aria-label="Settings">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">NoorTime</p>
+            <h1>Settings</h1>
+          </div>
+        </header>
 
-                <button id="btn-live-compass" class="btn-primary mt-20">Enable Live Compass</button>
-                <p id="compass-error" class="error-text mt-10"></p>
-            </div>
-        </main>
+        <div class="card">
+          <label class="field"><span>Calculation method</span><select id="methodSelect"></select></label>
+          <div class="two-col">
+            <label class="field"><span>Fajr angle</span><input id="fajrAngle" type="number" step="0.1" /></label>
+            <label class="field"><span>Isha angle</span><input id="ishaAngle" type="number" step="0.1" /></label>
+          </div>
+          <label class="field"><span>Isha fixed interval, minutes</span><input id="ishaInterval" type="number" step="1" placeholder="Only for fixed interval methods" /></label>
+          <label class="field"><span>Asr method</span><select id="asrMethod"><option value="standard">Standard</option><option value="hanafi">Hanafi</option></select></label>
+          <label class="field"><span>High-latitude adjustment</span><select id="highLatMethod"><option value="middle">Middle of night</option><option value="seventh">One seventh of night</option><option value="angle">Angle-based</option></select></label>
+        </div>
 
-        <main id="tab-settings" class="view">
-            <header><h2>Settings</h2></header>
-            <div class="content-padded pb-100">
-                <div class="card">
-                    <h3>Calculation Method</h3>
-                    <select id="setting-method">
-                        <option value="MWL">Muslim World League</option>
-                        <option value="ISNA">ISNA / North America</option>
-                        <option value="EGYPT">Egyptian General Authority</option>
-                        <option value="MAKKAH">Umm al-Qura / Makkah</option>
-                        <option value="KARACHI">University of Islamic Sciences, Karachi</option>
-                        <option value="JAFARI">Shia Ithna-Ashari / Jafari</option>
-                        <option value="CUSTOM">Custom</option>
-                    </select>
+        <div class="card">
+          <div class="section-title"><h2>Manual offsets</h2><span>minutes</span></div>
+          <div class="offset-grid" id="offsetGrid"></div>
+        </div>
+      </section>
 
-                    <div id="custom-angles" class="mt-10 hidden">
-                        <label>Fajr Angle: <input type="number" id="custom-fajr" step="0.1"></label>
-                        <label>Isha Angle: <input type="number" id="custom-isha" step="0.1"></label>
-                    </div>
-                </div>
+      <section class="page" id="page-more" data-page="more" aria-label="More">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">NoorTime</p>
+            <h1>More</h1>
+          </div>
+        </header>
 
-                <div class="card mt-10">
-                    <h3>Asr Method</h3>
-                    <select id="setting-asr">
-                        <option value="STANDARD">Standard (Shafi, Maliki, Hanbali)</option>
-                        <option value="HANAFI">Hanafi</option>
-                    </select>
-                </div>
+        <div class="card">
+          <div class="section-title"><h2>Notifications</h2></div>
+          <p class="note">Browser notifications only work while NoorTime is open. Audio never autoplays; use the test button manually.</p>
+          <div class="grid-actions">
+            <button class="primary-btn" id="enableNotificationsBtn">Enable Notifications</button>
+            <button class="ghost-btn" id="testToneBtn">Test Tone</button>
+          </div>
+          <p class="note" id="notificationStatus">Notifications are not enabled.</p>
+        </div>
 
-                <div class="card mt-10">
-                    <h3>High Latitude Adjustment</h3>
-                    <select id="setting-highlat">
-                        <option value="MIDNIGHT">Middle of the Night</option>
-                        <option value="ONESEVENTH">One Seventh of Night</option>
-                        <option value="ANGLE">Angle Based</option>
-                        <option value="NONE">None</option>
-                    </select>
-                </div>
+        <div class="card">
+          <div class="section-title"><h2>Data</h2></div>
+          <div class="grid-actions">
+            <button class="ghost-btn" id="exportBtn">Export JSON</button>
+            <label class="ghost-btn file-label">Import JSON<input id="importFile" type="file" accept="application/json,.json" /></label>
+          </div>
+          <button class="danger-btn full" id="resetBtn">Reset App / Settings</button>
+        </div>
 
-                <div class="card mt-10">
-                    <h3>Manual Offsets (Minutes)</h3>
-                    <div class="offsets-grid">
-                        <label>Fajr <input type="number" id="offset-fajr"></label>
-                        <label>Sunrise <input type="number" id="offset-sunrise"></label>
-                        <label>Dhuhr <input type="number" id="offset-dhuhr"></label>
-                        <label>Asr <input type="number" id="offset-asr"></label>
-                        <label>Maghrib <input type="number" id="offset-maghrib"></label>
-                        <label>Isha <input type="number" id="offset-isha"></label>
-                    </div>
-                </div>
-            </div>
-        </main>
+        <div class="card">
+          <div class="section-title"><h2>Diagnostics</h2></div>
+          <div class="diagnostic-row"><span>Storage working</span><strong id="storageStatus">checking...</strong></div>
+          <div class="diagnostic-row"><span>Storage key</span><code>noortime.settings.v4</code></div>
+        </div>
 
-        <main id="tab-more" class="view">
-            <header><h2>More</h2></header>
-            <div class="content-padded">
-                <div class="card">
-                    <h3>Notifications (App Must Be Open)</h3>
-                    <button id="btn-enable-notif" class="btn-secondary mt-10">Enable Browser Notifications</button>
-                    <button id="btn-test-tone" class="btn-secondary mt-10">Test Alert Tone</button>
-                </div>
+        <div class="card">
+          <div class="section-title"><h2>Disclaimer</h2></div>
+          <p class="note">Prayer times are estimates calculated in the browser. Confirm times with your local masjid or trusted local authority, especially during travel, high-latitude seasons, or if your community follows a local timetable.</p>
+        </div>
 
-                <div class="card mt-10">
-                    <h3>Data Management</h3>
-                    <button id="btn-export-json" class="btn-secondary mt-10">Export Settings (JSON)</button>
-                    <button id="btn-import-json" class="btn-secondary mt-10" onclick="document.getElementById('import-file').click()">Import Settings</button>
-                    <input type="file" id="import-file" style="display:none" accept=".json">
-                    <button id="btn-reset" class="btn-danger mt-10">Reset App to Defaults</button>
-                </div>
+        <div class="ad-card" aria-label="Sponsored advertisement placeholder">
+          <span>Sponsored</span>
+          <p>Replace this placeholder with your approved ad code.</p>
+        </div>
+      </section>
+    </main>
 
-                <div class="card mt-10 diagnostics">
-                    <h3>Diagnostics</h3>
-                    <p>Storage Working: <span id="diag-storage" class="status-pill">Checking...</span></p>
-                    <p class="disclaimer mt-10">
-                        <strong>Disclaimer:</strong> Prayer times are calculated astronomically and are estimates. Always confirm with your local masjid or trusted authority.
-                    </p>
-                </div>
-            </div>
-        </main>
+    <nav class="bottom-nav" aria-label="Main navigation">
+      <button class="nav-item active" data-tab="prayer"><span>☾</span><em>Prayer</em></button>
+      <button class="nav-item" data-tab="location"><span>⌖</span><em>Location</em></button>
+      <button class="nav-item" data-tab="qibla"><span>◉</span><em>Qibla</em></button>
+      <button class="nav-item" data-tab="settings"><span>⌘</span><em>Settings</em></button>
+      <button class="nav-item" data-tab="more"><span>•••</span><em>More</em></button>
+    </nav>
+  </div>
 
-        <nav class="bottom-nav">
-            <a href="#" class="nav-item active" data-target="tab-prayer">
-                <span class="material-symbols-rounded">schedule</span>
-                <span>Prayer</span>
-            </a>
-            <a href="#" class="nav-item" data-target="tab-location">
-                <span class="material-symbols-rounded">explore</span>
-                <span>Location</span>
-            </a>
-            <a href="#" class="nav-item" data-target="tab-qibla">
-                <span class="material-symbols-rounded">navigation</span>
-                <span>Qibla</span>
-            </a>
-            <a href="#" class="nav-item" data-target="tab-settings">
-                <span class="material-symbols-rounded">settings</span>
-                <span>Settings</span>
-            </a>
-            <a href="#" class="nav-item" data-target="tab-more">
-                <span class="material-symbols-rounded">more_horiz</span>
-                <span>More</span>
-            </a>
-        </nav>
-    </div>
-
-    <script src="app.js"></script>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
 </body>
 </html>
